@@ -1,7 +1,7 @@
-#Name:
-#ID:
-#Email:
-#Lab Section:
+#Name: ZHANG, Yaofeng
+#ID: 10587680
+#Email: yzhangak@ust.hk
+#Lab Section: LA2
 #Bonus -- left-movement key:     right-movement key:
 
 
@@ -39,6 +39,7 @@ images: .asciiz "background.png;shipR.png;shipL.png;subR.png;subL.png;subDamaged
 
 # The following registers are used throughout the program for the specified purposes,
 # so using any of them for another purpose must preserve the value of that register first: 
+
 # s0 -- total number of dolphins in a game level
 # s1 -- total number of submarines in a game level
 # s2 -- current game score
@@ -46,7 +47,6 @@ images: .asciiz "background.png;shipR.png;shipL.png;subR.png;subL.png;subDamaged
 # s4 -- current number of available simple bombs in a game level
 # s5 -- current number of available remote bombs in a game level
 # s6 -- starting time of a game iteration
-
 
 #---------- TEXT SEGMENT ----------
 	.text
@@ -196,14 +196,177 @@ setting2:
 initgame: 			
 #===================================================================
 
-############################
-# Please add your code here#
-############################
+# Push. 
+	addi $sp, $sp, -36
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 20($sp)
+	sw $s5, 24($sp)
+	sw $s6, 28($sp)
+	sw $s7, 32($sp)
+
+# Operations here. 
+
+# init submarines.
+        la $s7, submarines # s7 = addr of submarines. 
+        ori $t0, $zero, 0 # t0 = 0. loop index i. 
+        lw $s1, 8($sp) # num of submarines
+
+init_submarine_loop:
+        slt $t1, $t0, $s1
+        beq $t1, $zero, end_init_submarine_loop # t1 = 1 <=> i< numOfSubmarines. 
+
+        # init x-coord s1
+        ori $a0, $zero, 720 # 720 = 800 - width of submarine
+        jal randnum
+        ori $s1, $v0, 0
+
+        # init y-coord s2
+        ori $a0, $zero, 250 # 250 = the range of the y-coordinate. 
+        jal randnum
+        addi $s2, $v0, 250
+
+        # init speed s4
+        ori $a0, $zero, 6 # init speed 
+        jal randomSignChange
+        ori $s4, $a0, 0
+
+        # init image_index s3 depending on speed, s4.
+        slt $t1, $s4, $zero 
+        bne $t1, $zero, set_sub_neg_image # t1 = 1, s4 < 0, submarine's speed is negative. 
+        ori $s3, $zero, 3 # s4 > 0, set s3 to moving right. 
+        j quit_set_sub_image
+  set_sub_neg_image:
+        ori $s3, $zero, 4 # s4 < 0, set s3 to moving left. 
+  quit_set_sub_image:
+        
+        # init hit-point s5
+        ori $s5, $zero, 10 # s5 = init hit point
+
+        # write s1-s5 to array 
+        sw $s1, 0($s7)
+        sw $s2, 4($s7)
+        sw $s3, 8($s7)
+        sw $s4, 12($s7)
+        sw $s5, 16($s7)
+        
+        addi $s7, $s7, 20 # move up 20 bytes for next iteration. 
+        addi $t0, $t0, 1 # i+=1
+        j init_submarine_loop
+
+end_init_submarine_loop:
+# end of init submarines.
+
+# init dolphins. 
+        la $s7, dolphins # s7 = addr of dolphins.
+        ori $t0, $zero, 0 # t0 = 0. loop index j.
+        lw $s0, 4($sp) # num of dolphins
+
+init_dolphin_loop:
+        slt $t1, $t0, $s0
+        beq $t1, $zero, end_init_dolphin_loop # t1 = 1 <=> j<numOfDolphins
+
+        # init x-coord s1
+        ori $a0, $zero, 740 # 740 = 800 - width of dolphin
+        jal randnum
+        ori $s1, $v0, 0
+
+        # init y-coord s2
+        ori $a0, $zero, 250
+        jal randnum
+        addi $s2, $v0, 250
+
+        # init speed s4
+        ori $a0, $zero, 5
+        jal randomSignChange
+        ori $s4, $a0, 0
+
+        # init image_index s3 depends on speed, s4
+        slt $t1, $s4, $zero
+        bne $t1, $zero, set_dol_neg_image # t1 = 1, s4 < 0, dolphin's speed is negative.
+        ori $s3, $zero, 8 # s4 > 0, dolphin moving right
+        j quit_set_dol_image
+  set_dol_neg_image:
+        ori $s3, $zero, 9 # s4 < 0, dolphin moving left 
+  quit_set_dol_image:
+
+        # init hit-point s5
+        ori $s5, $zero, 20 # s5 = init hit point
+
+        # write s1-s5 to array
+        sw $s1, 0($s7)
+        sw $s2, 4($s7)
+        sw $s3, 8($s7)
+        sw $s4, 12($s7)
+        sw $s5, 16($s7)
+
+        addi $s7, $s7, 20 # move up 20 bytes for next iteration.
+        addi $t0, $t0, 1 # j+=1
+        j init_dolphin_loop
+
+end_init_dolphin_loop:
+# end of init dolphins.
+
+# set bomb number.
+        lw $s4, 20($sp)
+        ori $s4, $zero, 5 # num of simple bombs = 5
+        sw $s4, 20($sp) # write it into memory.
+        
+        lw $s5, 24($sp)
+        ori $s5, $zero, 1 # num of remote bombs = 1
+        sw $s5, 24($sp) # write it into memory. 
+# end of set bomb number. 
+
+# init bombs.
+# init simple bombs
+        la $s7, bombs # s7 = addr of dolphins
+        ori $t0, $zero, 0 # t0 = 0. loop index k. 
+        lw $s4, 20($sp) # s4 = num of simple bombs. 
+
+init_simple_bomb_loop:
+        slt $t1, $t0, $s4
+        beq $t1, $zero, end_init_simple_bomb_loop
+
+        # init image index
+        ori $s3, $zero, -1 # shouldn't be shown at first. 
+        # init speed
+        ori $t4, $zero, 4 # s4 is used to save num, so use t4 to initialize speed
+
+        # write into array
+        sw $s3, 8($s7)
+        sw $t4, 12($s7) 
+
+        addi $s7, $s7, 20 # update addr
+        addi $t0, $t0, 1 # k+=1
+        j init_simple_bomb_loop
+
+end_init_simple_bomb_loop:
+
+# init the remote bomb.
+        ori $s3, $zero, -1 # shouldn't be shown at first.  
+        ori $t4, $zero, 4
+        sw $s3, 8($s7) # s7 has already been updated in the loop. 
+        sw $t4, 12($s7)
+
+# end of init bombs.
 
 
+# Pop. 
+        lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 20($sp)
+	lw $s5, 24($sp)
+	lw $s6, 28($sp)
+	lw $s7, 32($sp)
+	addi $sp, $sp, 36
 
-
-
+	jr $ra
 
 #---------------------------------------------------------------------------------------------------------------------
 # Function: remove the destroyed submarines and dolphins from the screen
@@ -211,15 +374,81 @@ initgame:
 removeDestroyedObjects:				
 #===================================================================
 
-############################
-# Please add your code here#
-############################
+# Push. 
+	addi $sp, $sp, -36
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 20($sp)
+	sw $s5, 24($sp)
+	sw $s6, 28($sp)
+	sw $s7, 32($sp)
 
+# Operations here. 
 
+# rm destroyed submarines.
+        la $s7, submarines # s7 = addr of submarines. 
+        ori $t0, $zero, 0 # t0 = 0. loop index i. 
+        lw $s1, 8($sp) # num of submarines
 
+rm_destroyed_submarine_loop:
+        slt $t1, $t0, $s1
+        beq $t1, $zero, end_rm_destroyed_submarine_loop # t1 = 1 <=> i< numOfSubmarines. 
 
+        lw $s5, 16($s7)
+        beq $s5, $zero, erase_submarine # hp=0, erase the submarine.
+        j quit_check_submarine_hp # nothing happens
+  erase_submarine:
+        ori $s3, $zero, -1 # set index to -1. 
+        sw $s3, 8($s7) # update image index.
+  quit_check_submarine_hp:
 
+        addi $s7, $s7, 20 # move up 20 bytes for next iteration. 
+        addi $t0, $t0, 1 # i+=1
+        j rm_destroyed_submarine_loop 
 
+end_rm_destroyed_submarine_loop:
+# end of rm destroyed submarines.
+
+# rm destroyed dolphins. 
+        la $s7, dolphins # s7 = addr of dolphins.
+        ori $t0, $zero, 0 # t0 = 0. loop index j.
+        lw $s0, 4($sp) # num of dolphins
+
+rm_destroyed_dolphin_loop:
+        slt $t1, $t0, $s0
+        beq $t1, $zero, end_rm_destroyed_dolphin_loop # t1 = 1 <=> j<numOfDolphins
+
+        lw $s5, 16($s7)
+        beq $s5, $zero, erase_dolphin # hp=0, erase dolphin
+        j quit_check_dolphin_hp
+  erase_dolphin:
+        ori $s3, $zero, -1
+        sw $s3, 8($s7)
+  quit_check_dolphin_hp:
+
+        addi $s7, $s7, 20 # move up 20 bytes for next iteration.
+        addi $t0, $t0, 1 # j+=1
+        j rm_destroyed_dolphin_loop
+
+end_rm_destroyed_dolphin_loop:
+# end of rm destroyed dolphins.
+
+# Pop. 
+        lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 20($sp)
+	lw $s5, 24($sp)
+	lw $s6, 28($sp)
+	lw $s7, 32($sp)
+	addi $sp, $sp, 36
+
+	jr $ra
 
 #---------------------------------------------------------------------------------------------------------------------
 # Function: check any hits between an Activated bomb and a submarine or dolphin,
@@ -246,14 +475,131 @@ checkBombHits:
 processInput:
 #===================================================================
 
-############################
-# Please add your code here#
-############################
-
+# Push. 
+	addi $sp, $sp, -36
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 20($sp)
+	sw $s5, 24($sp)
+	sw $s6, 28($sp)
+	sw $s7, 32($sp)
 	
+# Operations here. 
 
+# q - 113
+# e - 101 
+# 1 - 49
+# 2 - 50
 
+        jal getInput
+        beq $v0, $zero, end_process_input # the user hasn't pressed anything. 
 
+        ori $t0, $zero, 113
+        beq $v0, $t0, process_q
+        ori $t0, $zero, 101
+        beq $v0, $t0, process_e
+        ori $t0, $zero, 49
+        beq $v0, $t0, process_1
+        ori $t0, $zero, 50
+        beq $v0, $t0, process_2
+        j end_process_input
+
+        process_q:
+              # quit the game. 
+              j end_main
+        process_1:
+              # drop simple bomb if available
+              lw $s4, 20($sp) # get num of available s_bomb
+              bgtz $s4, drop_s_bomb # if available simple bombs more than 0, drop
+              j end_process_input   # else abort.
+            drop_s_bomb:
+              la $s7, bombs # s7 = addr of bombs
+              ori $t0, $zero, 0 # t0 = 0. loop index i. 
+              lw $s4, 20($sp) # s4 = num of simple bombs. 
+
+              # loop to find the first available s_bomb, i.e, image_index = -1 < 0
+              drop_s_bomb_loop:
+                slt $t1, $t0, $s4
+                beq $t1, $zero, end_drop_s_bomb_loop
+
+                lw $s3, 8($s7) # s3 = image index
+                bltz $s3, drop_this_s_bomb # s3 < 0, available. jump out of loop and drop this one. 
+
+                addi $s7, $s7, 20 # update addr
+                addi $t0, $t0, 1 # k+=1
+                j drop_s_bomb_loop
+              end_drop_s_bomb_loop:
+                j end_process_input
+
+            drop_this_s_bomb:
+              # get ship x, y
+              la $t0, ship # t0 = addr of ship
+              lw $s1, 0($t0)
+              lw $s2, 4($t0)
+              addi $s1, $s1, 145 # s1 = x-coord of s_bomb
+              addi $s2, $s2, 160 # s2 = y-coord of s_bomb
+              ori $s3, $zero, 11 # index of s_bomb
+              sw $s1, 0($s7) # update x-coord
+              sw $s2, 4($s7) # update y-coord
+              sw $s3, 8($s7) # update index
+              addi $s4, $s4, -1 # available s_bomb - 1
+              sw $s4, 20($sp)
+
+              j end_process_input
+
+        process_2:
+              # drop remote bomb if available
+              lw $s5, 24($sp) # get num of available r_bomb
+              bgtz $s5, drop_this_r_bomb # if available remote bombs more than 0, drop
+              j end_process_input   # else abort.
+            drop_this_r_bomb:
+              la $s7, bombs # s7 = addr of bombs
+              addi $s7, $s7, 100 # directly move to the last bomb, which set as remote bomb
+              # get ship x, y
+              la $t0, ship # t0 = addr of ship
+              lw $s1, 0($t0)
+              lw $s2, 4($t0)
+              addi $s1, $s1, 145 # s1 = x-coord of r_bomb
+              addi $s2, $s2, 160 # s2 = y-coord of r_bomb
+              ori $s3, $zero, 12 # index of r_bomb. set as Disabled. 
+              sw $s1, 0($s7) # update x-coord
+              sw $s2, 4($s7) # update y-coord
+              sw $s3, 8($s7) # update index
+              addi $s5, $s5, -1 # available r_bomb - 1
+              sw $s5, 24($sp)
+              j end_process_input
+
+        process_e:
+              # change all remote bombs undersea as activated. 
+              lw $s7, bombs
+              addi $s7, $s7, 100 # directly move to last bomb. 
+              lw $s3, 8($s7)
+              ori $t0, $zero, 12
+              beq $s3, $t0, activate_r_bomb # if index is 12, it's disabled. Activate it!!
+              j end_process_input
+            activate_r_bomb:
+              ori $s3, $zero, 13
+              sw $s3, 8($s7)
+              j end_process_input
+
+end_process_input:
+
+# Pop. 
+        lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 20($sp)
+	lw $s5, 24($sp)
+	lw $s6, 28($sp)
+	lw $s7, 32($sp)
+	addi $sp, $sp, 36
+
+	jr $ra
 
 #----------------------------------------------------------------------------------------------------------------------
 # Function: move the ship, submarines and dolphins
@@ -261,13 +607,195 @@ processInput:
 moveShipSubmarinesDolphins:
 #===================================================================
 
-############################
-# Please add your code here#
-############################
+# Push. 
+	addi $sp, $sp, -36
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 20($sp)
+	sw $s5, 24($sp)
+	sw $s6, 28($sp)
+	sw $s7, 32($sp)
 
-	
+# Operations here. 
 
+# move ship
+        la $s7, ship # s7 = addr of ship
+        lw $s1, 0($s7) # s1 = x-coord of ship
+        lw $s4, 12($s7) # s4 = speed of ship
+        add $s1, $s1, $s4 # move ship
+        sw $s1, 0($s7) # update ship location.
+        # check out of bound. If so, change the direction of the speed. 
+        ori $t1, $zero, 0  # t1 = left bound of ship
+        ori $t2, $zero, 640 # t2 = right bound of ship
+        blt $s1, $t1, change_ship_speed_right
+        bgt $s1, $t2, change_ship_speed_left
+        j end_move_ship
 
+      change_ship_speed_left:
+        ori $a0, $s4, 0 # set a0 as speed of ship.
+        jal randomSignChange
+        beq $v0, $s4, change_ship_speed_left # continue change if v0 = s4. 
+        ori $s3, $zero, 2 # update index
+        ori $s4, $v0, 0 # set s4 as the new reverse speed. 
+        sw $s3, 8($s7)
+        sw $s4, 12($s7) # save new speed
+        j end_move_ship
+      change_ship_speed_right:
+        ori $a0, $s4, 0 # set a0 as speed of ship.
+        jal randomSignChange
+        beq $v0, $s4, change_ship_speed_right # continue change if v0 = s4. 
+        ori $s3, $zero, 1 # update index
+        ori $s4, $v0, 0 # set s4 as the new reverse speed. 
+        sw $s3, 8($s7)
+        sw $s4, 12($s7) # save new speed
+        j end_move_ship
+
+      end_move_ship:
+# end of move ship
+
+# move submarines.
+        la $s7, submarines # s7 = addr of submarines. 
+        ori $t0, $zero, 0 # t0 = 0. loop index i. 
+        lw $s1, 8($sp) # num of submarines
+
+move_submarine_loop:
+        slt $t1, $t0, $s1
+        beq $t1, $zero, end_move_submarine_loop # t1 = 1 <=> i< numOfSubmarines. 
+
+        lw $s1, 0($s7) # s1 = x-coord of submarine
+        lw $s4, 12($s7) # s4 = speed of submarine 
+        add $s1, $s1, $s4 # move submarine 
+        sw $s1, 0($s7) # update ship submarine 
+
+        # check out of bound. If so, change the direction of the speed. 
+        ori $t1, $zero, 0  # t1 = left bound of submarine 
+        ori $t2, $zero, 720 # t2 = right bound of submarine 
+        blt $s1, $t1, change_submarine_speed_right
+        bgt $s1, $t2, change_submarine_speed_left
+        j end_move_submarine
+
+      change_submarine_speed_left:
+        ori $a0, $s4, 0 # set a0 as speed of submarine.
+        jal randomSignChange
+        beq $v0, $s4, change_submarine_speed_left # continue change if v0 = s4. 
+        lw $s3, 8($s7) # get index
+        ori $t0, $zero, 4 # index of subL
+        bgt $s3, $t0, change_damaged_left # 5 or 6 is index of damaged submarine
+        j change_normal_left
+
+          change_damaged_left:
+            ori $s3, $zero, 6
+            j save_change_submarine_left
+          change_normal_left:
+            ori $s3, $zero, 4
+            j save_change_submarine_left
+
+      save_change_submarine_left:
+
+        ori $s4, $v0, 0 # set s4 as the new reverse speed. 
+        sw $s3, 8($s7)
+        sw $s4, 12($s7) # save new speed
+        j end_move_submarine
+
+      change_submarine_speed_right:
+        ori $a0, $s4, 0 # set a0 as speed of submarine.
+        jal randomSignChange
+        beq $v0, $s4, change_submarine_speed_right # continue change if v0 = s4. 
+
+        lw $s3, 8($s7) # get index
+        ori $t0, $zero, 4 # index of subL
+        bgt $s3, $t0, change_damaged_right # 5 or 6 is index of damaged submarine
+        j change_normal_right
+
+          change_damaged_right:
+            ori $s3, $zero, 5
+            j save_change_submarine_right
+          change_normal_right:
+            ori $s3, $zero, 3
+            j save_change_submarine_right
+
+      save_change_submarine_right:
+
+        ori $s3, $zero, 3
+        ori $s4, $v0, 0 # set s4 as the new reverse speed. 
+        sw $s3, 8($s7)
+        sw $s4, 12($s7) # save new speed
+        j end_move_submarine
+
+      end_move_submarine:
+
+        addi $s7, $s7, 20 # move up 20 bytes for next iteration. 
+        addi $t0, $t0, 1 # i+=1
+        j move_submarine_loop
+
+end_move_submarine_loop:
+# end of move submarines.
+
+# move dolphins. 
+        la $s7, dolphins # s7 = addr of dolphins.
+        ori $t0, $zero, 0 # t0 = 0. loop index j.
+        lw $s0, 4($sp) # num of dolphins
+
+move_dolphin_loop:
+        slt $t1, $t0, $s0
+        beq $t1, $zero, end_move_dolphin_loop # t1 = 1 <=> j<numOfDolphins
+
+        lw $s1, 0($s7) # s1 = x-coord of dolphin 
+        lw $s4, 12($s7) # s4 = speed of dolhpin
+        add $s1, $s1, $s4 # move dolphin 
+        sw $s1, 0($s7) # update ship dolphin 
+
+        # check out of bound. If so, change the direction of the speed. 
+        ori $t1, $zero, 0  # t1 = left bound of dolphin
+        ori $t2, $zero, 640 # t2 = right bound of dolphin
+        blt $s1, $t1, change_dolphin_speed_right
+        bgt $s1, $t2, change_dolphin_speed_left
+        j end_move_dolphin
+
+      change_dolphin_speed_left:
+        ori $a0, $s4, 0 # set a0 as speed of dolphin.
+        jal randomSignChange
+        beq $v0, $s4, change_dolphin_speed_left # continue change if v0 = s4. 
+        ori $s3, $zero, 9
+        ori $s4, $v0, 0 # set s4 as the new reverse speed. 
+        sw $s3, 8($s7)
+        sw $s4, 12($s7) # save new speed
+        j end_move_dolphin
+      change_dolphin_speed_right:
+        ori $a0, $s4, 0 # set a0 as speed of dolphin.
+        jal randomSignChange
+        beq $v0, $s4, change_dolphin_speed_right # continue change if v0 = s4. 
+        ori $s3, $zero, 8
+        ori $s4, $v0, 0 # set s4 as the new reverse speed. 
+        sw $s3, 8($s7)
+        sw $s4, 12($s7) # save new speed
+        j end_move_dolphin
+
+      end_move_dolphin:
+
+        addi $s7, $s7, 20 # move up 20 bytes for next iteration.
+        addi $t0, $t0, 1 # j+=1
+        j move_dolphin_loop
+
+end_move_dolphin_loop:
+# end of move dolphins.
+
+# Pop. 
+        lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 20($sp)
+	lw $s5, 24($sp)
+	lw $s6, 28($sp)
+	lw $s7, 32($sp)
+	addi $sp, $sp, 36
+
+	jr $ra
 
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -277,16 +805,98 @@ moveShipSubmarinesDolphins:
 moveBombs:
 #===================================================================
 
-############################
-# Please add your code here#
-############################
+# Push. 
+	addi $sp, $sp, -36
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 20($sp)
+	sw $s5, 24($sp)
+	sw $s6, 28($sp)
+	sw $s7, 32($sp)
 
+# Operations here. 
 
-	
-	
+# move simple bombs.
+        la $s7, bombs # s7 = addr of bombs 
+        ori $t0, $zero, 0 # t0 = 0. loop index k. 
+        lw $s4, 20($sp) # s4 = num of simple bombs. 
 
+move_s_bomb_loop:
+        slt $t1, $t0, $s4
+        beq $t1, $zero, end_move_s_bomb_loop
 
+        lw $s3, 8($s7) # s3 = index
+        bgtz $s3, move_s_bomb # s3 > 0, bomb exists move. else, next loop. 
+        j end_check_s_bomb_bound # same as jump to next iteration. 
 
+      move_s_bomb:
+        lw $t4, 12($s7) # t4 = speed
+        lw $s2, 4($s7) # s2 = y-coord
+        add $s2, $s2, $t4 # update y-coord
+        sw $s2, 4($s7) # write
+
+        # check out of bound. 
+        ori $t1, $zero, 630 # 630 = screen height + bomb_height
+        bgt $s2, $t1, rm_s_bomb_from_screen # y-coord > 630, out of bound
+        j end_check_s_bomb_bound
+  rm_s_bomb_from_screen:
+        ori $s3, $zero, -1
+        sw $s3, 8($s7) # update image index
+        lw $s4, 20($sp) # s4 = available s bombs.
+        addi $s4, $s4, 1 # add 1 back. 
+        sw $s4, 20($sp) # write 
+  end_check_s_bomb_bound:
+
+        addi $s7, $s7, 20 # update addr
+        addi $t0, $t0, 1 # k+=1
+        j move_s_bomb_loop
+
+end_move_s_bomb_loop:
+
+# end of move simple bombs
+
+# move remote bomb
+        la $s7, bombs
+        addi $s7, $s7, 100
+        lw $s3, 8($s7) # s3 = index
+        bgtz $s3, move_r_bomb # s3 > 0, r_bomb exists, move. else abort. 
+        j end_check_r_bomb_bound # same as abort. 
+
+      move_r_bomb:
+        lw $t4, 12($s7) # t4 = speed
+        lw $s2, 4($s7) # s2 = y-coord
+        add $s2, $s2, $t4 # update y-coord
+        sw $s2, 4($s7) # write
+
+        ori $t1, $zero, 630 # 630 = screen height + bomb_height
+        bgt $s2, $t1, rm_r_bomb_from_screen # y-coord >= 630, out of bound
+        j end_check_r_bomb_bound
+  rm_r_bomb_from_screen:
+        ori $s3, $zero, -1
+        sw $s3, 8($s7) # update image index
+        lw $s5, 20($sp) # s4 = available s bombs.
+        addi $s5, $s5, 1 # add 1 back. 
+        sw $s5, 20($sp) # write 
+  end_check_r_bomb_bound:
+
+# end of move remote bomb
+
+# Pop. 
+        lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 20($sp)
+	lw $s5, 24($sp)
+	lw $s6, 28($sp)
+	lw $s7, 32($sp)
+	addi $sp, $sp, 36
+
+	jr $ra
 
 #----------------------------------------------------------------------------------------------------------------------
 # Function: update the image index of any damaged or destroyed submarines and dolphins
@@ -294,16 +904,103 @@ moveBombs:
 updateDamagedImages:
 #===================================================================
 
-############################
-# Please add your code here#
-############################
+# Push. 
+	addi $sp, $sp, -36
+	sw $ra, 0($sp)
+	sw $s0, 4($sp)
+	sw $s1, 8($sp)
+	sw $s2, 12($sp)
+	sw $s3, 16($sp)
+	sw $s4, 20($sp)
+	sw $s5, 24($sp)
+	sw $s6, 28($sp)
+	sw $s7, 32($sp)
 
-	
+# Operations here. 
 
+# update submarines.
+        la $s7, submarines # s7 = addr of submarines. 
+        ori $t0, $zero, 0 # t0 = 0. loop index i. 
+        lw $s1, 8($sp) # num of submarines
 
+update_submarine_loop:
+        slt $t1, $t0, $s1
+        beq $t1, $zero, end_update_submarine_loop # t1 = 1 <=> i< numOfSubmarines. 
 
+        lw $s5, 16($s7)
+        beq $s5, $zero, update_destroyed_submarine # hp=0, update destroyed image. 
+        ori $t1, $zero, 5 # hp of a damaged submarine
+        beq $s5, $t1, update_damaged_submarine # hp=5, update damaged.
+        j end_update_submarine
 
-	
+  update_destroyed_submarine:
+        ori $s3, $zero, 7 # update image
+        sw $s3, 8($s7) # write
+        j end_update_submarine
+
+  update_damaged_submarine:
+        lw $s4, 12($s7) # load speed. 
+        slt $t1, $s4, $zero
+        bne $t1, $zero, update_damaged_submarine_left # t1 = 1, speed < 0, Left
+        j update_damaged_submarine_right
+    update_damaged_submarine_left:
+        ori $s3, $zero, 6 # update image
+        sw $s3, 8($s7) # write
+        j end_update_submarine
+    update_damaged_submarine_right:
+        ori $s3, $zero, 5 # update image
+        sw $s3, 8($s7) # write
+        j end_update_submarine
+
+  end_update_submarine:
+
+        addi $s7, $s7, 20 # move up 20 bytes for next iteration. 
+        addi $t0, $t0, 1 # i+=1
+        j update_submarine_loop
+
+end_update_submarine_loop:
+# end of update submarines.
+
+# update dolphins. 
+        la $s7, dolphins # s7 = addr of dolphins.
+        ori $t0, $zero, 0 # t0 = 0. loop index j.
+        lw $s0, 4($sp) # num of dolphins
+
+update_dolphin_loop:
+        slt $t1, $t0, $s0
+        beq $t1, $zero, end_update_dolphin_loop # t1 = 1 <=> j<numOfDolphins
+
+        lw $s5, 16($s7)
+        beq $s5, $zero, update_destroyed_dolphin # hp=0, dolphin destroyed
+        j end_update_dolphin
+  update_destroyed_dolphin:
+        ori $s3, $zero, 10 # update image
+        sw $s3, 8($s7) # write
+        j end_update_dolphin
+
+  end_update_dolphin:
+
+        addi $s7, $s7, 20 # move up 20 bytes for next iteration.
+        addi $t0, $t0, 1 # j+=1
+        j update_dolphin_loop
+
+end_update_dolphin_loop:
+# end of update dolphins.
+
+# Pop. 
+        lw $ra, 0($sp)
+	lw $s0, 4($sp)
+	lw $s1, 8($sp)
+	lw $s2, 12($sp)
+	lw $s3, 16($sp)
+	lw $s4, 20($sp)
+	lw $s5, 24($sp)
+	lw $s6, 28($sp)
+	lw $s7, 32($sp)
+	addi $sp, $sp, 36
+
+	jr $ra
+
 #----------------------------------------------------------------------------------------------------------------------
 # Function: check if a new level is reached (when all the submarines have been removed)	
 # return $v0: 0 -- false, 1 -- true
