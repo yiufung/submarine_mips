@@ -149,9 +149,11 @@ setting1:
 	ori $v0, $zero, 4
 	syscall
 	
-	ori $v0, $zero, 5			# cin >> dolphin_num
-	syscall
-	or $s0, $v0, $zero
+	#ori $v0, $zero, 5			# cin >> dolphin_num
+	#syscall
+	#or $s0, $v0, $zero
+	ori $v0, $zero, 5 ### TESTING LINE. DELETE THIS!!!! ###
+	or $s0, $v0, $zero ### TESTING LINE. DELETE THIS!!!! ###
 
 	slt $t4, $t0, $s0
 	bne $t4, $zero, setting3
@@ -175,8 +177,9 @@ setting2:
 	ori $v0, $zero, 4
 	syscall
 	
-	ori $v0, $zero, 5			# cin >> seed
-	syscall
+	#ori $v0, $zero, 5			# cin >> seed
+	#syscall
+	ori $v0, $zero, 4 ### TESTING LINE. DELETE THIS!!!! ###
 
 	ori $a0, $v0, 0				# set the seed of the random number generator
 	jal setRandomSeed    
@@ -637,18 +640,18 @@ moveShipSubmarinesDolphins:
       change_ship_speed_left:
         ori $a0, $s4, 0 # set a0 as speed of ship.
         jal randomSignChange
-        beq $v0, $s4, change_ship_speed_left # continue change if v0 = s4. 
+        beq $a0, $s4, change_ship_speed_left # continue change if a0 = s4. 
         ori $s3, $zero, 2 # update index
-        ori $s4, $v0, 0 # set s4 as the new reverse speed. 
+        ori $s4, $a0, 0 # set s4 as the new reverse speed. 
         sw $s3, 8($s7)
         sw $s4, 12($s7) # save new speed
         j end_move_ship
       change_ship_speed_right:
         ori $a0, $s4, 0 # set a0 as speed of ship.
         jal randomSignChange
-        beq $v0, $s4, change_ship_speed_right # continue change if v0 = s4. 
+        beq $a0, $s4, change_ship_speed_right # continue change if a0 = s4. 
         ori $s3, $zero, 1 # update index
-        ori $s4, $v0, 0 # set s4 as the new reverse speed. 
+        ori $s4, $a0, 0 # set s4 as the new reverse speed. 
         sw $s3, 8($s7)
         sw $s4, 12($s7) # save new speed
         j end_move_ship
@@ -680,7 +683,7 @@ move_submarine_loop:
       change_submarine_speed_left:
         ori $a0, $s4, 0 # set a0 as speed of submarine.
         jal randomSignChange
-        beq $v0, $s4, change_submarine_speed_left # continue change if v0 = s4. 
+        beq $a0, $s4, change_submarine_speed_left # continue change if v0 = s4. 
         lw $s3, 8($s7) # get index
         ori $t0, $zero, 4 # index of subL
         bgt $s3, $t0, change_damaged_left # 5 or 6 is index of damaged submarine
@@ -695,7 +698,7 @@ move_submarine_loop:
 
       save_change_submarine_left:
 
-        ori $s4, $v0, 0 # set s4 as the new reverse speed. 
+        ori $s4, $a0, 0 # set s4 as the new reverse speed. 
         sw $s3, 8($s7)
         sw $s4, 12($s7) # save new speed
         j end_move_submarine
@@ -703,7 +706,7 @@ move_submarine_loop:
       change_submarine_speed_right:
         ori $a0, $s4, 0 # set a0 as speed of submarine.
         jal randomSignChange
-        beq $v0, $s4, change_submarine_speed_right # continue change if v0 = s4. 
+        beq $a0, $s4, change_submarine_speed_right # continue change if v0 = s4. 
 
         lw $s3, 8($s7) # get index
         ori $t0, $zero, 4 # index of subL
@@ -720,7 +723,7 @@ move_submarine_loop:
       save_change_submarine_right:
 
         ori $s3, $zero, 3
-        ori $s4, $v0, 0 # set s4 as the new reverse speed. 
+        ori $s4, $a0, 0 # set s4 as the new reverse speed. 
         sw $s3, 8($s7)
         sw $s4, 12($s7) # save new speed
         j end_move_submarine
@@ -746,11 +749,11 @@ move_dolphin_loop:
         lw $s1, 0($s7) # s1 = x-coord of dolphin 
         lw $s4, 12($s7) # s4 = speed of dolhpin
         add $s1, $s1, $s4 # move dolphin 
-        sw $s1, 0($s7) # update ship dolphin 
+        sw $s1, 0($s7) # update dolphin location
 
         # check out of bound. If so, change the direction of the speed. 
         ori $t1, $zero, 0  # t1 = left bound of dolphin
-        ori $t2, $zero, 640 # t2 = right bound of dolphin
+        ori $t2, $zero, 740 # t2 = right bound of dolphin
         blt $s1, $t1, change_dolphin_speed_right
         bgt $s1, $t2, change_dolphin_speed_left
         j end_move_dolphin
@@ -758,18 +761,18 @@ move_dolphin_loop:
       change_dolphin_speed_left:
         ori $a0, $s4, 0 # set a0 as speed of dolphin.
         jal randomSignChange
-        beq $v0, $s4, change_dolphin_speed_left # continue change if v0 = s4. 
+        beq $a0, $s4, change_dolphin_speed_left # continue change if v0 = s4. 
         ori $s3, $zero, 9
-        ori $s4, $v0, 0 # set s4 as the new reverse speed. 
+        ori $s4, $a0, 0 # set s4 as the new reverse speed. 
         sw $s3, 8($s7)
         sw $s4, 12($s7) # save new speed
         j end_move_dolphin
       change_dolphin_speed_right:
         ori $a0, $s4, 0 # set a0 as speed of dolphin.
         jal randomSignChange
-        beq $v0, $s4, change_dolphin_speed_right # continue change if v0 = s4. 
+        beq $a0, $s4, change_dolphin_speed_right # continue change if v0 = s4. 
         ori $s3, $zero, 8
-        ori $s4, $v0, 0 # set s4 as the new reverse speed. 
+        ori $s4, $a0, 0 # set s4 as the new reverse speed. 
         sw $s3, 8($s7)
         sw $s4, 12($s7) # save new speed
         j end_move_dolphin
