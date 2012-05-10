@@ -30,6 +30,7 @@ msg1:	.asciiz "Invalid size!\n"
 msg2:	.asciiz "Enter the seed for random number generator? "
 msg3:	.asciiz "You have won!"
 newline: .asciiz "\n"
+space: .asciiz " "
 
 title: .asciiz "The Submarines game"
 # game image array constructed from a string of semicolon-delimited image files
@@ -50,9 +51,6 @@ images: .asciiz "background.png;shipR.png;shipL.png;subR.png;subL.png;subDamaged
 
 #---------- TEXT SEGMENT ----------
 	.text
-	
-
-
 main:
 #-------(Start main)------------------------------------------------
 
@@ -325,7 +323,7 @@ end_init_dolphin_loop:
 
 # init bombs.
 # init simple bombs
-        la $s7, bombs # s7 = addr of dolphins
+        la $s7, bombs # s7 = addr of bombs 
         ori $t0, $zero, 0 # t0 = 0. loop index k. 
         lw $s4, 20($sp) # s4 = num of simple bombs. 
 
@@ -348,12 +346,13 @@ init_simple_bomb_loop:
 
 end_init_simple_bomb_loop:
 
-# init the remote bomb.
+# init remote bomb.
+        la $s7, bombs
+        addi $s7, $s7, 100 # move to last bomb
         ori $s3, $zero, -1 # shouldn't be shown at first.  
         ori $t4, $zero, 4
-        sw $s3, 8($s7) # s7 has already been updated in the loop. 
+        sw $s3, 8($s7)
         sw $t4, 12($s7)
-
 # end of init bombs.
 
 
@@ -466,11 +465,6 @@ checkBombHits:
 # Please add your code here#
 ############################
 
-
-	
-
-
-
 	
 #----------------------------------------------------------------------------------------------------------------------
 # Function: read and handle the user's input
@@ -508,8 +502,17 @@ processInput:
         beq $v0, $t0, process_1
         ori $t0, $zero, 50
         beq $v0, $t0, process_2
+
+        ### for debug ###
+        ori $t0, $zero, 32
+        beq $v0, $t0, debug_bombs
+        ### for debug ###
+
         j end_process_input
 
+        debug_bombs:
+              jal print_bombs_index
+              j end_process_input
         process_q:
               # quit the game. 
               j end_main
@@ -521,11 +524,11 @@ processInput:
             drop_s_bomb:
               la $s7, bombs # s7 = addr of bombs
               ori $t0, $zero, 0 # t0 = 0. loop index i. 
-              lw $s4, 20($sp) # s4 = num of simple bombs. 
+              ori $t2, $zero, 5 # t2 = total number of simple bombs.
 
               # loop to find the first available s_bomb, i.e, image_index = -1 < 0
               drop_s_bomb_loop:
-                slt $t1, $t0, $s4
+                slt $t1, $t0, $t2
                 beq $t1, $zero, end_drop_s_bomb_loop
 
                 lw $s3, 8($s7) # s3 = image index
@@ -540,10 +543,10 @@ processInput:
             drop_this_s_bomb:
               # get ship x, y
               la $t0, ship # t0 = addr of ship
-              lw $s1, 0($t0)
-              lw $s2, 4($t0)
-              addi $s1, $s1, 145 # s1 = x-coord of s_bomb
-              addi $s2, $s2, 160 # s2 = y-coord of s_bomb
+              lw $s1, 0($t0) 
+              lw $s2, 4($t0) 
+              addi $s1, $s1, 65 # s1 = x-coord of s_bomb, 65 = (ship width - bomb width) / 2
+              addi $s2, $s2, 60 # s2 = y-coord of s_bomb, 60 just a rough number for beauty.
               ori $s3, $zero, 11 # index of s_bomb
               sw $s1, 0($s7) # update x-coord
               sw $s2, 4($s7) # update y-coord
@@ -565,8 +568,8 @@ processInput:
               la $t0, ship # t0 = addr of ship
               lw $s1, 0($t0)
               lw $s2, 4($t0)
-              addi $s1, $s1, 145 # s1 = x-coord of r_bomb
-              addi $s2, $s2, 160 # s2 = y-coord of r_bomb
+              addi $s1, $s1, 65 # s1 = x-coord of r_bomb
+              addi $s2, $s2, 60 # s2 = y-coord of r_bomb
               ori $s3, $zero, 12 # index of r_bomb. set as Disabled. 
               sw $s1, 0($s7) # update x-coord
               sw $s2, 4($s7) # update y-coord
@@ -825,67 +828,100 @@ moveBombs:
 # move simple bombs.
         la $s7, bombs # s7 = addr of bombs 
         ori $t0, $zero, 0 # t0 = 0. loop index k. 
-        lw $s4, 20($sp) # s4 = num of simple bombs. 
+        ori $t2, $zero, 5 # t2 = num of simple bombs. 
 
 move_s_bomb_loop:
-        slt $t1, $t0, $s4
+        slt $t1, $t0, $t2
         beq $t1, $zero, end_move_s_bomb_loop
 
+        # check if this bomb at screen, if so, move it. 
         lw $s3, 8($s7) # s3 = index
-        bgtz $s3, move_s_bomb # s3 > 0, bomb exists move. else, next loop. 
-        j end_check_s_bomb_bound # same as jump to next iteration. 
+        bgtz $s3, move_s_bomb # s3 > 0, bomb exists, move.
+        j end_move_s_bomb # else, next loop
 
       move_s_bomb:
         lw $t4, 12($s7) # t4 = speed
         lw $s2, 4($s7) # s2 = y-coord
         add $s2, $s2, $t4 # update y-coord
         sw $s2, 4($s7) # write
-
-        # check out of bound. 
-        ori $t1, $zero, 630 # 630 = screen height + bomb_height
-        bgt $s2, $t1, rm_s_bomb_from_screen # y-coord > 630, out of bound
-        j end_check_s_bomb_bound
-  rm_s_bomb_from_screen:
-        ori $s3, $zero, -1
-        sw $s3, 8($s7) # update image index
-        lw $s4, 20($sp) # s4 = available s bombs.
-        addi $s4, $s4, 1 # add 1 back. 
-        sw $s4, 20($sp) # write 
-  end_check_s_bomb_bound:
+      end_move_s_bomb:
 
         addi $s7, $s7, 20 # update addr
         addi $t0, $t0, 1 # k+=1
         j move_s_bomb_loop
 
 end_move_s_bomb_loop:
-
 # end of move simple bombs
 
 # move remote bomb
         la $s7, bombs
         addi $s7, $s7, 100
         lw $s3, 8($s7) # s3 = index
-        bgtz $s3, move_r_bomb # s3 > 0, r_bomb exists, move. else abort. 
-        j end_check_r_bomb_bound # same as abort. 
+        bgtz $s3, move_r_bomb # s3 > 0, r_bomb exists, move.
+        j end_move_r_bomb # else abort
 
       move_r_bomb:
         lw $t4, 12($s7) # t4 = speed
         lw $s2, 4($s7) # s2 = y-coord
         add $s2, $s2, $t4 # update y-coord
         sw $s2, 4($s7) # write
-
-        ori $t1, $zero, 630 # 630 = screen height + bomb_height
-        bgt $s2, $t1, rm_r_bomb_from_screen # y-coord >= 630, out of bound
-        j end_check_r_bomb_bound
-  rm_r_bomb_from_screen:
-        ori $s3, $zero, -1
-        sw $s3, 8($s7) # update image index
-        lw $s5, 20($sp) # s4 = available s bombs.
-        addi $s5, $s5, 1 # add 1 back. 
-        sw $s5, 20($sp) # write 
-  end_check_r_bomb_bound:
-
+      end_move_r_bomb:
 # end of move remote bomb
+
+# check out of bound. 
+        la $s7, bombs # s7 = addr of bombs 
+        ori $t0, $zero, 0 # t0 = 0. loop index k. 
+        ori $t7, $zero, 6 # t7 = total number of bombs. 
+
+check_bomb_bound_loop:
+        slt $t1, $t0, $t7
+        beq $t1, $zero, end_check_bomb_bound_loop
+
+        # if(bomb exsits and bomb out of bound)
+        #    remove. 
+        # else do nothing. 
+  check_bomb_exists:
+        lw $s3, 8($s7) # s3 = index
+        bgtz $s3, check_bomb_out_bound # s3 > 0, bomb exists, check bound.
+        j next_check_bomb_bound # else, next loop
+
+  check_bomb_out_bound:
+        lw $s2, 4($s7) # y-coord of this bomb
+        ori $t1, $zero, 600 # 600 = screen height
+        bgt $s2, $t1, rm_bomb # y-coord > 600, out of bound, need to remove.
+        j next_check_bomb_bound # else, next loop
+
+    rm_bomb:
+          ori $s3, $zero, -1
+          sw $s3, 8($s7) # update image index
+          # check t0 and decide whether it's s_bomb or r_bomb
+          ori $t4, $zero, 5 # t4 = 5. 
+          blt $t0, $t4, rm_s_bomb # if t0 < 5, it's s_bomb.
+          j rm_r_bomb
+      rm_s_bomb: # s_bomb += 1
+          lw $s4, 20($sp) # s4 = available s bombs.
+          addi $s4, $s4, 1 # add 1 back. 
+          sw $s4, 20($sp) # write 
+        j end_rm_bomb
+      rm_r_bomb: # r_bomb += 1
+          lw $s5, 24($sp) # s4 = available s bombs.
+          addi $s5, $s5, 1 # add 1 back. 
+          sw $s5, 24($sp) # write 
+        j end_rm_bomb
+    end_rm_bomb:
+
+  end_check_bomb_out_bound:
+
+  next_check_bomb_bound:
+
+        addi $s7, $s7, 20 # update addr
+        addi $t0, $t0, 1 # k+=1
+        j check_bomb_bound_loop
+
+end_check_bomb_bound_loop:
+
+# end check out of bound. 
+ 
 
 # Pop. 
         lw $ra, 0($sp)
@@ -1489,3 +1525,44 @@ positive_pause_time:
 	addi $sp, $sp, 4
 	jr $ra
 #----------------------------------------------------------------------------------------------------------------------
+	
+print_bombs_index:
+  addi $sp, $sp, -16
+  sw $t0, 0($sp)
+  sw $t6, 4($sp)
+  sw $t7, 8($sp)
+  sw $ra, 12($sp)
+  
+  la $t7, bombs
+  ori $t0, $zero, 0 # index i
+  ori $t6, $zero, 5 # largest index of bombs: 0 1 2 3 4 5
+  
+  print_bomb_loop:
+    bgt $t0, $t6, end_print_bomb_loop # quit if t0 = 6
+
+    li $v0, 1
+    lw $a0, 8($t7)
+    syscall
+
+    la $a0, space
+    ori $v0, $zero, 4
+    syscall
+
+    addi $t7, $t7, 20 # next bomb
+    addi $t0, $t0, 1 # i+=1
+    j print_bomb_loop
+  end_print_bomb_loop:
+
+  la $a0, newline
+  ori $v0, $zero, 4
+  syscall
+
+  lw $t0, 0($sp)
+  lw $t6, 4($sp)
+  lw $t7, 8($sp)
+  lw $ra, 12($sp)
+  addi $sp, $sp, 16
+
+  jr $ra
+  
+
