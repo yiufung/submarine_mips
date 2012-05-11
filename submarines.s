@@ -615,6 +615,7 @@ bomb_loop:
     next_check_submarine_bomb_loop:
       addi $s6, $s6, 20
       addi $t5, $t5, 1
+      j check_submarine_bomb_loop
 
     end_check_submarine_bomb_loop:
 
@@ -666,6 +667,7 @@ bomb_loop:
     next_check_dolphin_bomb_loop:
       addi $s6, $s6, 20
       addi $t5, $t5, 1
+      j check_dolphin_bomb_loop
 
     end_check_dolphin_bomb_loop:
 ############# end of check dolphin bomb #############
@@ -705,6 +707,7 @@ bomb_loop:
 next_bomb_loop:
   addi $s7, $s7, 20
   addi $t4, $t4, 1
+  j bomb_loop
 
 end_bomb_loop:
 
@@ -1412,13 +1415,13 @@ isIntersected:
 	sw $s3, 16($sp)
 	sw $s7, 20($sp)
 
-	add $s0, $a0, $a2
+	add $s0, $a0, $a2       # s0 = right x of A
 	addi $s0, $s0, -1	# subtract 1 because the pixel after the last one was incorrectly added above 
-	add $s1, $a1, $a3
+	add $s1, $a1, $a3       # s1 = bottom y of A
 	addi $s1, $s1, -1
-	add $s2, $t0, $t2
+	add $s2, $t0, $t2       # s2 = right x of B
 	addi $s2, $s2, -1
-	add $s3, $t1, $t3
+	add $s3, $t1, $t3       # s3 = bottom y of B
 	addi $s3, $s3, -1
 
 	li $v0, 1	# first assume they intersect
