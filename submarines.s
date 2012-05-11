@@ -1262,8 +1262,8 @@ check_bomb_bound_loop:
 
   check_bomb_out_bound:
         lw $s2, 4($s7) # y-coord of this bomb
-        ori $t1, $zero, 600 # 600 = screen height
-        bgt $s2, $t1, rm_bomb # y-coord > 600, out of bound, need to remove.
+        ori $t1, $zero, 570 # 570 = screen height - bomb size
+        bgt $s2, $t1, rm_bomb # y-coord > 570, out of bound, need to remove.
         j next_check_bomb_bound # else, next loop
 
     rm_bomb:
