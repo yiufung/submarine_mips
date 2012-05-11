@@ -2,7 +2,7 @@
 #ID: 10587680
 #Email: yzhangak@ust.hk
 #Lab Section: LA2
-#Bonus -- left-movement key:     right-movement key:
+#Bonus -- left-movement key:   j  right-movement key:  k
 
 
 #=====================#
@@ -148,11 +148,11 @@ setting1:
 	ori $v0, $zero, 4
 	syscall
 	
-	#ori $v0, $zero, 5			# cin >> dolphin_num
-	#syscall
-	#or $s0, $v0, $zero
-	ori $v0, $zero, 5 ### TESTING LINE. DELETE THIS!!!! ###
-	or $s0, $v0, $zero ### TESTING LINE. DELETE THIS!!!! ###
+	ori $v0, $zero, 5			# cin >> dolphin_num
+	syscall
+	or $s0, $v0, $zero
+	#ori $v0, $zero, 3 ### TESTING LINE. DELETE THIS!!!! ###
+	#or $s0, $v0, $zero ### TESTING LINE. DELETE THIS!!!! ###
 
 	slt $t4, $t0, $s0
 	bne $t4, $zero, setting3
@@ -176,9 +176,9 @@ setting2:
 	ori $v0, $zero, 4
 	syscall
 	
-	#ori $v0, $zero, 5			# cin >> seed
-	#syscall
-	ori $v0, $zero, 4 ### TESTING LINE. DELETE THIS!!!! ###
+	ori $v0, $zero, 5			# cin >> seed
+	syscall
+	#ori $v0, $zero, 7 ### TESTING LINE. DELETE THIS!!!! ###
 
 	ori $a0, $v0, 0				# set the seed of the random number generator
 	jal setRandomSeed    
@@ -575,7 +575,7 @@ bomb_loop:
         beq $v0, $zero, check_hit_other
 
         # center get hit
-        jal print_intersect_message # debug
+        #jal print_intersect_message # debug
         li $s1, 1 # exploded = true
 
         lw $t6, 16($s6) # t6 current hit point of submarine
@@ -599,7 +599,7 @@ bomb_loop:
         jal isIntersected
         beq $v0, $zero, next_check_submarine_bomb_loop # not hitted, next loop. 
         # other part get hit.
-        jal print_intersect_message # debug
+        #jal print_intersect_message # debug
         li $s1, 1 # exploded = true
 
         lw $t6, 16($s6) # t6 current hit point of submarine
@@ -652,7 +652,7 @@ bomb_loop:
       jal isIntersected
       beq $v0, $zero, next_check_dolphin_bomb_loop # not hit, next loop
       # dolphin get hit
-      jal print_intersect_message # debug
+      #jal print_intersect_message # debug
       li $s1, 1 # exploded = true
 
       lw $t6, 16($s6) # hp of dolphin
@@ -745,11 +745,6 @@ processInput:
 	
 # Operations here. 
 
-# q - 113
-# e - 101 
-# 1 - 49
-# 2 - 50
-
         jal getInput
         beq $v0, $zero, end_process_input # the user hasn't pressed anything. 
 
@@ -761,19 +756,26 @@ processInput:
         beq $v0, $t0, process_1
         ori $t0, $zero, 50
         beq $v0, $t0, process_2
+        
+        ### move ship by input. comment to move ship automatically ###
+        ori $t0, $zero, 106 # j
+        beq $v0, $t0, process_j # move ship left
+        ori $t0, $zero, 107 # k
+        beq $v0, $t0, process_k # move ship right 
 
         ### for debug ###
-        ori $t0, $zero, 100 # d
-        beq $v0, $t0, debug_bombs_index
-        ori $t0, $zero, 102 # f
-        beq $v0, $t0, debug_bombs_status
-        ori $t0, $zero, 106 # j
-        beq $v0, $t0, debug_dolphin_hp
-        ori $t0, $zero, 107 # k
-        beq $v0, $t0, debug_dolphin_index
+        #ori $t0, $zero, 100 # d
+        #beq $v0, $t0, debug_bombs_index
+        #ori $t0, $zero, 102 # f
+        #beq $v0, $t0, debug_bombs_status
+        #ori $t0, $zero, 106 # j
+        #beq $v0, $t0, debug_dolphin_hp
+        #ori $t0, $zero, 107 # k
+        #beq $v0, $t0, debug_dolphin_index
 
         j end_process_input
 
+        ### for debug use. assign an key and jump here. ###
         debug_bombs_index:
               jal print_bombs_index
               j end_process_input
@@ -888,6 +890,64 @@ processInput:
 
               j end_process_input
 
+        # move ship left
+        process_j:
+              la $s7, ship # s7 = addr of ship
+              # calculate new position and update index
+              lw $s1, 0($s7) # s1 = x-coord of ship
+              addi $s1, $s1, -4 # move left by 4
+              ori $s3, $zero, 2 # new index
+              
+              sw $s1, 0($s7) # update x-coord
+              sw $s3, 8($s7) # update index
+
+              j check_ship_bound_process # check whether the ship is out of bound. if so, update image
+
+        # move ship right
+        process_k:
+              la $s7, ship # s7 = addr of ship
+              # calculate new position and update index
+              lw $s1, 0($s7) # s1 = x-coord of ship
+              addi $s1, $s1, 4 # move left by 4
+              ori $s3, $zero, 1 # new index
+              
+              sw $s1, 0($s7) # update x-coord
+              sw $s3, 8($s7) # update index
+
+              j check_ship_bound_process # check whether the ship is out of bound. if so, update image
+
+        # check whether ship has moved out of bound. 
+        # if so, change direction and update location. 
+        check_ship_bound_process:
+
+              # check out of bound. If so, change the direction of the speed. 
+              ori $t1, $zero, 0  # t1 = left bound of ship
+              ori $t2, $zero, 640 # t2 = right bound of ship
+              blt $s1, $t1, change_ship_speed_right
+              bgt $s1, $t2, change_ship_speed_left
+              j end_process_ship_move # if not out of bound, nothing to do. end processing. 
+
+            change_ship_speed_left:
+              # update index, set new speed
+              addi $s1, $s1, -4 # calculate new x-coord
+              ori $s3, $zero, 2 # update index
+              sw $s1, 0($s7)
+              sw $s3, 8($s7)
+              j end_process_ship_move
+
+            change_ship_speed_right:
+              # update index, set new speed
+              addi $s1, $s1, 4 # calculate new x-coord
+              ori $s3, $zero, 1 # update index
+              sw $s1, 0($s7)
+              sw $s3, 8($s7)
+              j end_process_ship_move
+
+        end_process_ship_move:
+             # end of processing j or k. 
+             j end_process_input
+
+
 end_process_input:
 
 # Pop. 
@@ -924,43 +984,44 @@ moveShipSubmarinesDolphins:
 
 # Operations here. 
 
-# move ship
-        la $s7, ship # s7 = addr of ship
-        lw $s1, 0($s7) # s1 = x-coord of ship
-        lw $s4, 12($s7) # s4 = speed of ship
-        add $s1, $s1, $s4 # move ship
-        sw $s1, 0($s7) # update ship location.
-
-        # check out of bound. If so, change the direction of the speed. 
-        ori $t1, $zero, 0  # t1 = left bound of ship
-        ori $t2, $zero, 640 # t2 = right bound of ship
-        blt $s1, $t1, change_ship_speed_right
-        bgt $s1, $t2, change_ship_speed_left
-        j end_move_ship
-
-      change_ship_speed_left:
-        ori $a0, $s4, 0 # set a0 as speed of ship.
-        jal randomSignChange
-        beq $a0, $s4, change_ship_speed_left # continue change if a0 = s4. 
-        # update index, set new speed
-        ori $s3, $zero, 2 # update index
-        ori $s4, $a0, 0 # set s4 as the new reverse speed. 
-        sw $s3, 8($s7)
-        sw $s4, 12($s7) # save new speed
-        j end_move_ship
-      change_ship_speed_right:
-        ori $a0, $s4, 0 # set a0 as speed of ship.
-        jal randomSignChange
-        beq $a0, $s4, change_ship_speed_right # continue change if a0 = s4. 
-        # update index, set new speed
-        ori $s3, $zero, 1 # update index
-        ori $s4, $a0, 0 # set s4 as the new reverse speed. 
-        sw $s3, 8($s7)
-        sw $s4, 12($s7) # save new speed
-        j end_move_ship
-
-      end_move_ship:
-# end of move ship
+# uncomment it to move ship automatically
+## move ship
+#        la $s7, ship # s7 = addr of ship
+#        lw $s1, 0($s7) # s1 = x-coord of ship
+#        lw $s4, 12($s7) # s4 = speed of ship
+#        add $s1, $s1, $s4 # move ship
+#        sw $s1, 0($s7) # update ship location.
+#
+#        # check out of bound. If so, change the direction of the speed. 
+#        ori $t1, $zero, 0  # t1 = left bound of ship
+#        ori $t2, $zero, 640 # t2 = right bound of ship
+#        blt $s1, $t1, change_ship_speed_right
+#        bgt $s1, $t2, change_ship_speed_left
+#        j end_move_ship
+#
+#      change_ship_speed_left:
+#        ori $a0, $s4, 0 # set a0 as speed of ship.
+#        jal randomSignChange
+#        beq $a0, $s4, change_ship_speed_left # continue change if a0 = s4. 
+#        # update index, set new speed
+#        ori $s3, $zero, 2 # update index
+#        ori $s4, $a0, 0 # set s4 as the new reverse speed. 
+#        sw $s3, 8($s7)
+#        sw $s4, 12($s7) # save new speed
+#        j end_move_ship
+#      change_ship_speed_right:
+#        ori $a0, $s4, 0 # set a0 as speed of ship.
+#        jal randomSignChange
+#        beq $a0, $s4, change_ship_speed_right # continue change if a0 = s4. 
+#        # update index, set new speed
+#        ori $s3, $zero, 1 # update index
+#        ori $s4, $a0, 0 # set s4 as the new reverse speed. 
+#        sw $s3, 8($s7)
+#        sw $s4, 12($s7) # save new speed
+#        j end_move_ship
+#
+#      end_move_ship:
+## end of move ship
 
 # move submarines.
         la $s7, submarines # s7 = addr of submarines. 
