@@ -4,7 +4,6 @@
 #Lab Section: LA2
 #Bonus -- left-movement key:   j  right-movement key:  k
 
-
 #=====================#
 # THE SUBMARINES GAME #
 #=====================#
@@ -215,10 +214,10 @@ initgame:
 # init submarines.
         la $s7, submarines # s7 = addr of submarines. 
         ori $t0, $zero, 0 # t0 = 0. loop index i. 
-        lw $s1, 8($sp) # num of submarines
+        lw $s6, 8($sp) # num of submarines
 
 init_submarine_loop:
-        slt $t1, $t0, $s1
+        slt $t1, $t0, $s6
         beq $t1, $zero, end_init_submarine_loop # t1 = 1 <=> i< numOfSubmarines. 
 
         # init x-coord s1
@@ -265,10 +264,10 @@ end_init_submarine_loop:
 # init dolphins. 
         la $s7, dolphins # s7 = addr of dolphins.
         ori $t0, $zero, 0 # t0 = 0. loop index j.
-        lw $s0, 4($sp) # num of dolphins
+        lw $s6, 4($sp) # num of dolphins
 
 init_dolphin_loop:
-        slt $t1, $t0, $s0
+        slt $t1, $t0, $s6
         beq $t1, $zero, end_init_dolphin_loop # t1 = 1 <=> j<numOfDolphins
 
         # init x-coord s1
