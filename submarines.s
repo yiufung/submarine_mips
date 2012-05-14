@@ -325,22 +325,22 @@ end_init_dolphin_loop:
 # init simple bombs
         la $s7, bombs # s7 = addr of bombs 
         ori $t0, $zero, 0 # t0 = 0. loop index k. 
-        lw $s4, 20($sp) # s4 = num of simple bombs. 
+        lw $s6, 20($sp) # s6 = num of simple bombs. 
 
 init_simple_bomb_loop:
-        slt $t1, $t0, $s4
+        slt $t1, $t0, $s6
         beq $t1, $zero, end_init_simple_bomb_loop
 
         # init image index
         ori $s3, $zero, -1 # shouldn't be shown at first. 
         # init speed
-        ori $t4, $zero, 4 # s4 is used to save num, so use t4 to initialize speed
+        ori $s4, $zero, 4 # s4 = speed
         # init status
         ori $s5, $zero, 1 # simple bombs always activated.
 
         # write into array
         sw $s3, 8($s7)
-        sw $t4, 12($s7) 
+        sw $s4, 12($s7) 
         sw $s5, 16($s7)
 
         addi $s7, $s7, 20 # update addr
@@ -353,10 +353,10 @@ end_init_simple_bomb_loop:
         la $s7, bombs
         addi $s7, $s7, 100 # move to last bomb
         ori $s3, $zero, -1 # shouldn't be shown at first.  
-        ori $t4, $zero, 4
+        ori $s4, $zero, 4
         ori $s5, $zero, 0 # remote bomb initialized to deactivated. 
         sw $s3, 8($s7)
-        sw $t4, 12($s7)
+        sw $s4, 12($s7)
         sw $s5, 16($s7)
 # end of init bombs.
 
